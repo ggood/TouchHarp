@@ -203,7 +203,14 @@ void update_leds() {
   digitalWrite(LED0,  HIGH);
 }
 
+// Record the current on/off state for each string
 int note_state[13];
+
+// Define the notes that sound when each string is touched
+// or plucked. For now we have pentatonic, whole tone, and
+// octatonic scales, but there's no way to change them while
+// playing. Need to fix that...
+
 unsigned int pentatonic_notes[13] = {
   60,
   62,
