@@ -246,10 +246,10 @@ unsigned int octatonic_notes[13] = {
   69,
   70,
   72,
-  74,
+  73,
+  75,
   76,
-  77,
-  79
+  78
 };
 
 unsigned int *notes = octatonic_notes;
