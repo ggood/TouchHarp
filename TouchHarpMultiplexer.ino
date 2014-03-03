@@ -95,7 +95,7 @@ class TouchPin {
 public:
   TouchPin(int, unsigned long);
   TouchPin(int, unsigned long, unsigned int);
-  void update();
+  virtual void update();
   unsigned int value();
   boolean down();
   void set_touch_threshold(unsigned int touch_threshold);
@@ -168,14 +168,28 @@ class HarpString: public TouchPin {
   
   TODO(ggood) implement the plucked() method
   */
+  boolean _armed;
+  
 public:
   HarpString(int pin, unsigned long sample_period) : TouchPin(pin, sample_period) {};
   HarpString(int pin, unsigned long sample_period, unsigned int select_line) : TouchPin(pin, sample_period, select_line) {};
+  void update();
+  boolean plucked();
 };
+
+boolean HarpString::plucked() {
+  return true;
+}
+
+void HarpString::update() {
+  TouchPin::update();
+  // TODO: record touch event. Record release event and time. If vibration period has expired, send note off. Or
+  // maybe just expect caller to send note on and off immediately on detecting a pluck.
+}
 
 // The current prototype has 13 "strings", all attached to
 // analog input 9 on the Teensy
-TouchPin strings[13] = {
+HarpString strings[13] = {
   HarpString(A9, SAMPLE_PERIOD, 0),
   HarpString(A9, SAMPLE_PERIOD, 1),
   HarpString(A9, SAMPLE_PERIOD, 2),
