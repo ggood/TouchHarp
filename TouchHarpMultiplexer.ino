@@ -24,7 +24,8 @@ and so on, up to
  1  1  1  1 - input 15 is selected
  
 This skectch assumes the following connections between the
-Teensy 3.0 pins and the analog multiplexer:
+Teensy 3.0 pins and the input select pins on the analog
+multiplexer:
 
 Teensy  4067
 ======  ====
@@ -36,7 +37,17 @@ Teensy  4067
 A datasheet for the 4067 is available online at:
 https://www.sparkfun.com/datasheets/IC/CD74HC4067.pdf
 
-So the basic idea is to select an in
+You can think of the 4067 like an old school rotary
+switch that connects an output pin to one of 16 input
+pins. So connect the output pin of the 4067 to a
+touch-input-capable pin (pin 23, aka A9 is used in this
+sketch). Then connect your touch sensors to the inputs
+on the 4067, labeled i0 through i15.
+
+In this sketch, only the first 13 inputs on the 4067
+are used, since that's how many "harp strings" my
+instrument has.
+
 */
 
 
