@@ -48,6 +48,12 @@ In this sketch, only the first 13 inputs on the 4067
 are used, since that's how many "harp strings" my
 instrument has.
 
+The value that the Teensy TouchRead() method returns
+can vary a lot depending on how much stray capacitance
+is present in the system, so the treshold above which
+we declare an input to be touched can be set via a
+potentiometer which is read on analog input A0.
+
 */
 
 
@@ -75,6 +81,7 @@ instrument has.
 // Default reading from a touch sensor to consider a touch event
 #define DEFAULT_TOUCH_THRESHOLD 5000
 
+// Formatted print support, just for debug messages
 #include <stdarg.h>
 void p(char *fmt, ... ){
   char tmp[128]; // resulting string limited to 128 chars
@@ -108,7 +115,7 @@ public:
   TouchPin(int, unsigned long, unsigned int);
   virtual void update();
   unsigned int value();
-  boolean down();
+  boolean touching();
   void set_touch_threshold(unsigned int touch_threshold);
 };
 
@@ -159,7 +166,7 @@ unsigned int TouchPin::value() {
   return _sum / SAMPLE_BUFFER_SIZE;
 }
 
-boolean TouchPin::down() {
+boolean TouchPin::touching() {
   // If the current value is above the touch threshold, return true
   return value() > _touch_threshold;
 }
@@ -220,12 +227,12 @@ HarpString strings[13] = {
 void update_leds() {
   // Turn on LED0 if any string is being touched
   for (int i = 0; i < 13; i++) {
-    if (strings[i].down()) {
+    if (strings[i].touching()) {
       digitalWrite(LED0,  HIGH);
       return;
     }
   }
-  digitalWrite(LED0,  HIGH);
+  digitalWrite(LED0,  LOW);
 }
 
 // Record the current on/off state for each string
@@ -313,13 +320,13 @@ void loop() {
   for (int i = 0; i < 13; i++) {
     strings[i].set_touch_threshold(sens);
     strings[i].update();
-    if (strings[i].down() && note_state[i] == -1) {
+    if (strings[i].touching() && note_state[i] == -1) {
       // Note sounding - turn on
       Serial.println("ON");
       usbMIDI.sendNoteOn(notes[i], 100, 1);
       note_state[i] = millis();
     } 
-    else if ((!(strings[i].down())) && note_state[i] > -1) {
+    else if ((!(strings[i].touching())) && note_state[i] > -1) {
       // Note sounding - turn off
       note_state[i] = -1L;
       Serial.println("OFF");
