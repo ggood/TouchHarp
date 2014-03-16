@@ -265,7 +265,7 @@ HarpString strings[13] = {
   HarpString(TOUCH_IN, SAMPLE_PERIOD, 9),
   HarpString(TOUCH_IN, SAMPLE_PERIOD, 10),
   HarpString(TOUCH_IN, SAMPLE_PERIOD, 11),
-  HarpString(A8, SAMPLE_PERIOD, 12),
+  HarpString(TOUCH_IN, SAMPLE_PERIOD, 12),
 };
 
 
@@ -371,8 +371,8 @@ void loop() {
   // Reset touch threshold
   unsigned int sens = get_sensitivity();
   for (int i = 0; i < 13; i++) {
-    strings[12].set_touch_threshold(sens);
-    strings[12].update();
+    strings[i].set_touch_threshold(sens);
+    strings[i].update();
   }
   update_leds();
 }
