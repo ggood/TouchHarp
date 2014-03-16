@@ -198,48 +198,34 @@ class HarpString: public TouchPin {
   unsigned long _duration = STRING_VIBRATION_DURATION;  // How long the simulated string vibrates
   
 public:
-  HarpString(int pin, unsigned long sample_period, byte midi_note) : TouchPin(pin, sample_period) {
-    _midi_note = midi_note;
-  };
-  HarpString(int pin, unsigned long sample_period, unsigned int select_line, byte midi_note) : TouchPin(pin, sample_period, select_line) {
-    _midi_note = midi_note;
-  };
+  HarpString(int pin, unsigned long sample_period) : TouchPin(pin, sample_period) {};
+  HarpString(int pin, unsigned long sample_period, unsigned int select_line) : TouchPin(pin, sample_period, select_line) {};
   void update();
+  void set_midi_note(byte note);
 };
 
 void HarpString::update() {
   TouchPin::update();  // Call superclass, where the pin is actually read
   switch (_state) {
     case STATE_IDLE:
-      //Serial.println("IDLE");
       if (touching()) {
         _state = STATE_ARMED;
       }
       break;
     case STATE_ARMED:
-      Serial.println("ARMED");
       if (!touching()) {
         usbMIDI.sendNoteOn(_midi_note, 100, 1);
-        Serial.print("ON ");
-        Serial.print(_midi_note);
-        Serial.println("");
         _state = STATE_SOUNDING;
         _on_time = millis();
       }
       break;
     case STATE_SOUNDING:
-      Serial.println("SOUNDING");
-      if (_state == STATE_SOUNDING) {
-        if (touching()) {
-          // Stop string "vibration"
-          usbMIDI.sendNoteOff(_midi_note, 100, 1);
-          _state = STATE_ARMED;
-        }
+      if (touching()) {
+        // Stop string "vibration"
+        usbMIDI.sendNoteOff(_midi_note, 100, 1);
+        _state = STATE_ARMED;
       } else if (millis() - _on_time > _duration) {
         usbMIDI.sendNoteOff(_midi_note, 100, 1);
-        Serial.print("OFF ");
-        Serial.print(_midi_note);
-        Serial.println("");
        _on_time = 0L;
        _state = STATE_IDLE;
       }
@@ -247,6 +233,11 @@ void HarpString::update() {
     default:
       Serial.println("OOOOPS");
   }
+}
+
+
+void HarpString::set_midi_note(byte midi_note) {
+  _midi_note = midi_note;
 }
 
 
@@ -363,7 +354,10 @@ void setup() {
   // Input pin for sensitivity adjustment
   pinMode(SENS_IN, INPUT);
   Serial.begin(9600);
-
+  
+  for (int i = 0; i < 13; i++) {
+    strings[i].set_midi_note(notes[i]);
+  }
 }
 
 
