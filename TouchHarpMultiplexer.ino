@@ -56,9 +56,6 @@ potentiometer which is read on analog input A0.
 
 */
 
-
-
-
 // Touch input pin
 #define TOUCH_IN A9
 
@@ -73,13 +70,15 @@ potentiometer which is read on analog input A0.
 
 // Sensitivity adjustment input pin
 #define SENS_IN A0
-
 // Sample period - sample input no more often than this (in milliseconds)
 #define SAMPLE_PERIOD 1
 // How many samples to average
 #define SAMPLE_BUFFER_SIZE 10
 // Default reading from a touch sensor to consider a touch event
 #define DEFAULT_TOUCH_THRESHOLD 5000
+// How long the simulated strings vibrate
+#define STRING_VIBRATION_DURATION 2000L
+
 
 // Formatted print support, just for debug messages
 #include <stdarg.h>
@@ -91,6 +90,7 @@ void p(char *fmt, ... ){
   va_end (args);
   Serial.print(tmp);
 }
+
 
 class TouchPin {
   /**
@@ -130,6 +130,7 @@ TouchPin::TouchPin(int pin, unsigned long sample_period) {
   _touch_threshold = DEFAULT_TOUCH_THRESHOLD;
 }
 
+
 TouchPin::TouchPin(int pin, unsigned long sample_period, unsigned int select_line) {
   _pin = pin;
   _sample_period = sample_period;
@@ -139,6 +140,7 @@ TouchPin::TouchPin(int pin, unsigned long sample_period, unsigned int select_lin
   _select_line = select_line;
   _touch_threshold = DEFAULT_TOUCH_THRESHOLD;
 }
+
 
 void TouchPin::update() {
   if (millis() > _last_sample_time + _sample_period) {
@@ -161,10 +163,12 @@ void TouchPin::update() {
   }
 }
 
+
 unsigned int TouchPin::value() {
   // Return the running average
   return _sum / SAMPLE_BUFFER_SIZE;
 }
+
 
 boolean TouchPin::touching() {
   // If the current value is above the touch threshold, return true
@@ -181,51 +185,93 @@ void TouchPin::set_touch_threshold(unsigned int touch_threshold) {
 class HarpString: public TouchPin {
   /**
   A HarpString extends the TouchPin object and adds the concept of a "pluck"
-  operation. A pluck happens when the string is touched (we enter the "armed"
-  state) and them is released.
-  
-  TODO(ggood) implement the plucked() method
+  operation. A pluck happens when the string is touched and then is released.
   */
-  boolean _armed;
+#define STATE_IDLE 1
+#define STATE_ARMED 2
+#define STATE_SOUNDING 3
+
+  boolean _state = STATE_IDLE;
+  
+  unsigned long _on_time = 0L;
+  byte _midi_note = 0;
+  unsigned long _duration = STRING_VIBRATION_DURATION;  // How long the simulated string vibrates
   
 public:
-  HarpString(int pin, unsigned long sample_period) : TouchPin(pin, sample_period) {};
-  HarpString(int pin, unsigned long sample_period, unsigned int select_line) : TouchPin(pin, sample_period, select_line) {};
+  HarpString(int pin, unsigned long sample_period, byte midi_note) : TouchPin(pin, sample_period) {
+    _midi_note = midi_note;
+  };
+  HarpString(int pin, unsigned long sample_period, unsigned int select_line, byte midi_note) : TouchPin(pin, sample_period, select_line) {
+    _midi_note = midi_note;
+  };
   void update();
-  boolean plucked();
 };
 
-boolean HarpString::plucked() {
-  return true;
+void HarpString::update() {
+  TouchPin::update();  // Call superclass, where the pin is actually read
+  switch (_state) {
+    case STATE_IDLE:
+      //Serial.println("IDLE");
+      if (touching()) {
+        _state = STATE_ARMED;
+      }
+      break;
+    case STATE_ARMED:
+      Serial.println("ARMED");
+      if (!touching()) {
+        usbMIDI.sendNoteOn(_midi_note, 100, 1);
+        Serial.print("ON ");
+        Serial.print(_midi_note);
+        Serial.println("");
+        _state = STATE_SOUNDING;
+        _on_time = millis();
+      }
+      break;
+    case STATE_SOUNDING:
+      Serial.println("SOUNDING");
+      if (_state == STATE_SOUNDING) {
+        if (touching()) {
+          // Stop string "vibration"
+          usbMIDI.sendNoteOff(_midi_note, 100, 1);
+          _state = STATE_ARMED;
+        }
+      } else if (millis() - _on_time > _duration) {
+        usbMIDI.sendNoteOff(_midi_note, 100, 1);
+        Serial.print("OFF ");
+        Serial.print(_midi_note);
+        Serial.println("");
+       _on_time = 0L;
+       _state = STATE_IDLE;
+      }
+      break;
+    default:
+      Serial.println("OOOOPS");
+  }
 }
 
-void HarpString::update() {
-  TouchPin::update();
-  // TODO: record touch event. Record release event and time. If vibration period has expired, send note off. Or
-  // maybe just expect caller to send note on and off immediately on detecting a pluck.
-}
 
 // The current prototype has 13 "strings", all attached to
 // analog input 9 on the Teensy
 HarpString strings[13] = {
-  HarpString(A9, SAMPLE_PERIOD, 0),
-  HarpString(A9, SAMPLE_PERIOD, 1),
-  HarpString(A9, SAMPLE_PERIOD, 2),
-  HarpString(A9, SAMPLE_PERIOD, 3),
-  HarpString(A9, SAMPLE_PERIOD, 4),
-  HarpString(A9, SAMPLE_PERIOD, 5),
-  HarpString(A9, SAMPLE_PERIOD, 6),
-  HarpString(A9, SAMPLE_PERIOD, 7),
-  HarpString(A9, SAMPLE_PERIOD, 8),
-  HarpString(A9, SAMPLE_PERIOD, 9),
-  HarpString(A9, SAMPLE_PERIOD, 10),
-  HarpString(A9, SAMPLE_PERIOD, 11),
-  HarpString(A9, SAMPLE_PERIOD, 12),
+  HarpString(TOUCH_IN, SAMPLE_PERIOD, 0),
+  HarpString(TOUCH_IN, SAMPLE_PERIOD, 1),
+  HarpString(TOUCH_IN, SAMPLE_PERIOD, 2),
+  HarpString(TOUCH_IN, SAMPLE_PERIOD, 3),
+  HarpString(TOUCH_IN, SAMPLE_PERIOD, 4),
+  HarpString(TOUCH_IN, SAMPLE_PERIOD, 5),
+  HarpString(TOUCH_IN, SAMPLE_PERIOD, 6),
+  HarpString(TOUCH_IN, SAMPLE_PERIOD, 7),
+  HarpString(TOUCH_IN, SAMPLE_PERIOD, 8),
+  HarpString(TOUCH_IN, SAMPLE_PERIOD, 9),
+  HarpString(TOUCH_IN, SAMPLE_PERIOD, 10),
+  HarpString(TOUCH_IN, SAMPLE_PERIOD, 11),
+  HarpString(A8, SAMPLE_PERIOD, 12),
 };
 
 
 void update_leds() {
   // Turn on LED0 if any string is being touched
+  boolean touched = false;
   for (int i = 0; i < 13; i++) {
     if (strings[i].touching()) {
       digitalWrite(LED0,  HIGH);
@@ -235,8 +281,17 @@ void update_leds() {
   digitalWrite(LED0,  LOW);
 }
 
-// Record the current on/off state for each string
-int note_state[13];
+
+unsigned int get_sensitivity() {
+  // Read the touch sensitivity potentiometer and adjust
+  // the touch sensitivity.
+  unsigned int sens_raw = analogRead(SENS_IN);
+  unsigned int sens = map(sens_raw, 0, 1023, 4000, 8000);
+  return sens;
+}
+
+
+// --- Globals, etc
 
 // Define the notes that sound when each string is touched
 // or plucked. For now we have pentatonic, whole tone, and
@@ -291,14 +346,12 @@ unsigned int octatonic_notes[13] = {
   78
 };
 
+
 unsigned int *notes = octatonic_notes;
 
-void setup() {
-  for (int i = 0; i < 13; i++) {
-    note_state[i] = -1L;
-  }
 
-  // Set LED output pins
+void setup() {
+  // Set LED output pin
   pinMode(LED0, OUTPUT);
 
   // Select pins for multiplexer
@@ -313,24 +366,13 @@ void setup() {
 
 }
 
+
 void loop() {
   // Reset touch threshold
-  unsigned int sens_raw = analogRead(SENS_IN);
-  unsigned int sens = map(sens_raw, 0, 1023, 4000, 8000);
+  unsigned int sens = get_sensitivity();
   for (int i = 0; i < 13; i++) {
-    strings[i].set_touch_threshold(sens);
-    strings[i].update();
-    if (strings[i].touching() && note_state[i] == -1) {
-      // Note sounding - turn on
-      Serial.println("ON");
-      usbMIDI.sendNoteOn(notes[i], 100, 1);
-      note_state[i] = millis();
-    } 
-    else if ((!(strings[i].touching())) && note_state[i] > -1) {
-      // Note sounding - turn off
-      note_state[i] = -1L;
-      Serial.println("OFF");
-      usbMIDI.sendNoteOff(notes[i], 100, 1);
-    }
+    strings[12].set_touch_threshold(sens);
+    strings[12].update();
   }
+  update_leds();
 }
