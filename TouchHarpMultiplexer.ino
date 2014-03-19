@@ -70,6 +70,8 @@ potentiometer which is read on analog input A0.
 
 // Sensitivity adjustment input pin
 #define SENS_IN A0
+// Duration adjustment input pin
+#define DUR_IN A1
 // Sample period - sample input no more often than this (in milliseconds)
 #define SAMPLE_PERIOD 1
 // How many samples to average
@@ -77,7 +79,7 @@ potentiometer which is read on analog input A0.
 // Default reading from a touch sensor to consider a touch event
 #define DEFAULT_TOUCH_THRESHOLD 5000
 // How long the simulated strings vibrate
-#define STRING_VIBRATION_DURATION 2000L
+#define DEFAULT_STRING_VIBRATION_DURATION 2000L
 
 
 // Formatted print support, just for debug messages
@@ -123,7 +125,6 @@ TouchPin::TouchPin(int pin, unsigned long sample_period) {
   _pin = pin;
   _sample_period = sample_period;
   _last_sample_time = 0UL;
-  // _samples = {0};
   _index = 0;
   _sum = 0UL;
   _select_line = -1;
@@ -175,6 +176,7 @@ boolean TouchPin::touching() {
   return value() > _touch_threshold;
 }
 
+
 void TouchPin::set_touch_threshold(unsigned int touch_threshold) {
   // Set the threshold value - if the value we read is larger than
   // touch_threshold, we report a touch event.
@@ -195,14 +197,16 @@ class HarpString: public TouchPin {
   
   unsigned long _on_time = 0L;
   byte _midi_note = 0;
-  unsigned long _duration = STRING_VIBRATION_DURATION;  // How long the simulated string vibrates
+  unsigned long _duration = DEFAULT_STRING_VIBRATION_DURATION;  // How long the simulated string vibrates
   
 public:
   HarpString(int pin, unsigned long sample_period) : TouchPin(pin, sample_period) {};
   HarpString(int pin, unsigned long sample_period, unsigned int select_line) : TouchPin(pin, sample_period, select_line) {};
   void update();
   void set_midi_note(byte note);
+  void set_duration(unsigned long duration);
 };
+
 
 void HarpString::update() {
   TouchPin::update();  // Call superclass, where the pin is actually read
@@ -238,6 +242,13 @@ void HarpString::update() {
 
 void HarpString::set_midi_note(byte midi_note) {
   _midi_note = midi_note;
+}
+
+
+void HarpString::set_duration(unsigned long duration) {
+  // Set the duration, in milliseonds, that the
+  // simulated string will vibrate
+  _duration = duration;
 }
 
 
@@ -279,6 +290,15 @@ unsigned int get_sensitivity() {
   unsigned int sens_raw = analogRead(SENS_IN);
   unsigned int sens = map(sens_raw, 0, 1023, 4000, 8000);
   return sens;
+}
+
+
+unsigned long get_duration() {
+  // Read the duration input potentiometer and map
+  // it to a value from 0 to 5000 milliseconds.
+  unsigned int dur_raw = analogRead(DUR_IN);
+  unsigned long duration = map(dur_raw, 0, 1023, 0, 5000);
+  return duration;
 }
 
 
@@ -353,6 +373,8 @@ void setup() {
   
   // Input pin for sensitivity adjustment
   pinMode(SENS_IN, INPUT);
+  // Input pin for duration adjustment
+  pinMode(DUR_IN, INPUT);
   Serial.begin(9600);
   
   for (int i = 0; i < 13; i++) {
@@ -364,8 +386,11 @@ void setup() {
 void loop() {
   // Reset touch threshold
   unsigned int sens = get_sensitivity();
+  unsigned long duration = get_duration();
+  Serial.println(duration);
   for (int i = 0; i < 13; i++) {
     strings[i].set_touch_threshold(sens);
+    strings[i].set_duration(duration);
     strings[i].update();
   }
   update_leds();
