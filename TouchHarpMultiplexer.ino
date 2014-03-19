@@ -54,6 +54,13 @@ is present in the system, so the treshold above which
 we declare an input to be touched can be set via a
 potentiometer which is read on analog input A0.
 
+Another potentiometer attached to analog input A1 controls
+how log the MIDI note remains on after a simulated string
+is plucked. For patches that already mimic a plucked
+instrument, you can set this to a very short duration.
+For patches like synth pads, setting the duration to
+a few seconds can produce some interesting effects.
+
 */
 
 // Touch input pin
