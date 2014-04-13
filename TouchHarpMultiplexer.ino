@@ -365,7 +365,7 @@ unsigned int octatonic_notes[13] = {
 };
 
 
-unsigned int *notes = octatonic_notes;
+unsigned int *notes = pentatonic_notes;
 
 
 void setup() {
