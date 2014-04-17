@@ -46,7 +46,9 @@ on the 4067, labeled i0 through i15.
 
 In this sketch, only the first 13 inputs on the 4067
 are used, since that's how many "harp strings" my
-instrument has.
+instrument has, although I'm expanding it to use 3
+multiplexers. Eventually, this will support 48 strings
+total, but for now it's 3x13 = 39.
 
 The value that the Teensy TouchRead() method returns
 can vary a lot depending on how much stray capacitance
@@ -63,8 +65,15 @@ a few seconds can produce some interesting effects.
 
 */
 
-// Touch input pin
-#define TOUCH_IN A9
+// Touch input pins. There are 3 multiplexers, so
+// there are 3 touch input pins
+#define TOUCH_IN_0 A9
+#define TOUCH_IN_1 A8
+#define TOUCH_IN_2 A5
+
+// Each multiplexer handles 13 input pins for now, so
+// there are 13x3 = 39 total notes
+#define NUM_STRINGS 39
 
 // LED output pins
 #define LED0 13
@@ -259,29 +268,57 @@ void HarpString::set_duration(unsigned long duration) {
 }
 
 
-// The current prototype has 13 "strings", all attached to
+// The current prototype has NUM_STRINGS "strings", all attached to
 // analog input 9 on the Teensy
-HarpString strings[13] = {
-  HarpString(TOUCH_IN, SAMPLE_PERIOD, 0),
-  HarpString(TOUCH_IN, SAMPLE_PERIOD, 1),
-  HarpString(TOUCH_IN, SAMPLE_PERIOD, 2),
-  HarpString(TOUCH_IN, SAMPLE_PERIOD, 3),
-  HarpString(TOUCH_IN, SAMPLE_PERIOD, 4),
-  HarpString(TOUCH_IN, SAMPLE_PERIOD, 5),
-  HarpString(TOUCH_IN, SAMPLE_PERIOD, 6),
-  HarpString(TOUCH_IN, SAMPLE_PERIOD, 7),
-  HarpString(TOUCH_IN, SAMPLE_PERIOD, 8),
-  HarpString(TOUCH_IN, SAMPLE_PERIOD, 9),
-  HarpString(TOUCH_IN, SAMPLE_PERIOD, 10),
-  HarpString(TOUCH_IN, SAMPLE_PERIOD, 11),
-  HarpString(TOUCH_IN, SAMPLE_PERIOD, 12),
+HarpString strings[39] = {
+  HarpString(TOUCH_IN_0, SAMPLE_PERIOD, 0),
+  HarpString(TOUCH_IN_0, SAMPLE_PERIOD, 1),
+  HarpString(TOUCH_IN_0, SAMPLE_PERIOD, 2),
+  HarpString(TOUCH_IN_0, SAMPLE_PERIOD, 3),
+  HarpString(TOUCH_IN_0, SAMPLE_PERIOD, 4),
+  HarpString(TOUCH_IN_0, SAMPLE_PERIOD, 5),
+  HarpString(TOUCH_IN_0, SAMPLE_PERIOD, 6),
+  HarpString(TOUCH_IN_0, SAMPLE_PERIOD, 7),
+  HarpString(TOUCH_IN_0, SAMPLE_PERIOD, 8),
+  HarpString(TOUCH_IN_0, SAMPLE_PERIOD, 9),
+  HarpString(TOUCH_IN_0, SAMPLE_PERIOD, 10),
+  HarpString(TOUCH_IN_0, SAMPLE_PERIOD, 11),
+  HarpString(TOUCH_IN_0, SAMPLE_PERIOD, 12),
+  
+  HarpString(TOUCH_IN_1, SAMPLE_PERIOD, 0),
+  HarpString(TOUCH_IN_1, SAMPLE_PERIOD, 1),
+  HarpString(TOUCH_IN_1, SAMPLE_PERIOD, 2),
+  HarpString(TOUCH_IN_1, SAMPLE_PERIOD, 3),
+  HarpString(TOUCH_IN_1, SAMPLE_PERIOD, 4),
+  HarpString(TOUCH_IN_1, SAMPLE_PERIOD, 5),
+  HarpString(TOUCH_IN_1, SAMPLE_PERIOD, 6),
+  HarpString(TOUCH_IN_1, SAMPLE_PERIOD, 7),
+  HarpString(TOUCH_IN_1, SAMPLE_PERIOD, 8),
+  HarpString(TOUCH_IN_1, SAMPLE_PERIOD, 9),
+  HarpString(TOUCH_IN_1, SAMPLE_PERIOD, 10),
+  HarpString(TOUCH_IN_1, SAMPLE_PERIOD, 11),
+  HarpString(TOUCH_IN_1, SAMPLE_PERIOD, 12),
+  
+  HarpString(TOUCH_IN_2, SAMPLE_PERIOD, 0),
+  HarpString(TOUCH_IN_2, SAMPLE_PERIOD, 1),
+  HarpString(TOUCH_IN_2, SAMPLE_PERIOD, 2),
+  HarpString(TOUCH_IN_2, SAMPLE_PERIOD, 3),
+  HarpString(TOUCH_IN_2, SAMPLE_PERIOD, 4),
+  HarpString(TOUCH_IN_2, SAMPLE_PERIOD, 5),
+  HarpString(TOUCH_IN_2, SAMPLE_PERIOD, 6),
+  HarpString(TOUCH_IN_2, SAMPLE_PERIOD, 7),
+  HarpString(TOUCH_IN_2, SAMPLE_PERIOD, 8),
+  HarpString(TOUCH_IN_2, SAMPLE_PERIOD, 9),
+  HarpString(TOUCH_IN_2, SAMPLE_PERIOD, 10),
+  HarpString(TOUCH_IN_2, SAMPLE_PERIOD, 11),
+  HarpString(TOUCH_IN_2, SAMPLE_PERIOD, 12),
 };
 
 
 void update_leds() {
   // Turn on LED0 if any string is being touched
   boolean touched = false;
-  for (int i = 0; i < 13; i++) {
+  for (int i = 0; i < NUM_STRINGS; i++) {
     if (strings[i].touching()) {
       digitalWrite(LED0,  HIGH);
       return;
@@ -316,56 +353,48 @@ unsigned long get_duration() {
 // octatonic scales, but there's no way to change them while
 // playing. Need to fix that...
 
-unsigned int pentatonic_notes[13] = {
-  60,
-  62,
-  64,
-  67,
-  69,
-  72,
-  74,
-  76,
-  79,
-  81,
-  84,
-  86,
-  88
+unsigned int pentatonic_notes[NUM_STRINGS] = {
+   0,  2,  4,  7,  9,
+  12, 14, 16, 19, 21,
+  24, 26, 28, 31, 33,
+  36, 38, 40, 43, 45,
+  48, 50, 52, 55, 57,
+  60, 62, 64, 67, 69,
+  72, 74, 76, 79, 81,
+  84, 86, 88, 91  
 };
 
-unsigned int whole_tone_notes[13] = {
-  60,
-  62,
-  64,
-  66,
-  68,
-  70,
-  72,
-  74,
-  76,
-  78,
-  80,
-  82,
-  84
+unsigned int whole_tone_notes[NUM_STRINGS] = {
+  0,  2,  4,  6,  8,  10,
+  12, 14, 16, 18, 20, 22,
+  24, 26, 28, 30, 32, 34,
+  36, 38, 40, 42, 44, 46,
+  48, 50, 52, 54, 56, 58,
+  60, 62, 64, 66, 68, 70,
+  72, 74, 76
 };
 
-unsigned int octatonic_notes[13] = {
-  60,
-  61,
-  63,
-  64,
-  66,
-  67,
-  69,
-  70,
-  72,
-  73,
-  75,
-  76,
-  78
+unsigned int octatonic_notes[NUM_STRINGS] = {
+   0,  1,  3,  4,  6,  7,  9, 10,
+  12, 13, 15, 16, 18, 19, 21, 22,
+  24, 25, 27, 28, 30, 31, 33, 34,
+  36, 37, 39, 40, 42, 43, 45, 46,
+  48, 49, 51, 52, 54, 55, 57
 };
 
+unsigned int phrygian_dominant_notes[NUM_STRINGS] = {
+// 0  +1  +3  +1  +2  +1   +2
+   0,  1,  4,  5,  7,  8,  10,
+  12, 13, 16, 17, 19, 20, 22,
+  24, 25, 28, 29, 31, 32, 34,
+  36, 37, 40, 41, 43, 44, 46,
+  48, 49, 52, 53, 55, 56, 58,
+  60, 61, 64, 65
+};
+   
 
-unsigned int *notes = pentatonic_notes;
+
+unsigned int *notes = phrygian_dominant_notes;
 
 
 void setup() {
@@ -384,8 +413,8 @@ void setup() {
   pinMode(DUR_IN, INPUT);
   Serial.begin(9600);
   
-  for (int i = 0; i < 13; i++) {
-    strings[i].set_midi_note(notes[i]);
+  for (int i = 0; i < NUM_STRINGS; i++) {
+    strings[i].set_midi_note(notes[i] + 62);
   }
 }
 
@@ -395,7 +424,7 @@ void loop() {
   unsigned int sens = get_sensitivity();
   unsigned long duration = get_duration();
   Serial.println(duration);
-  for (int i = 0; i < 13; i++) {
+  for (int i = 0; i < NUM_STRINGS; i++) {
     strings[i].set_touch_threshold(sens);
     strings[i].set_duration(duration);
     strings[i].update();
