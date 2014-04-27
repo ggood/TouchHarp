@@ -423,7 +423,6 @@ void loop() {
   // Reset touch threshold
   unsigned int sens = get_sensitivity();
   unsigned long duration = get_duration();
-  Serial.println(duration);
   for (int i = 0; i < NUM_STRINGS; i++) {
     strings[i].set_touch_threshold(sens);
     strings[i].set_duration(duration);
