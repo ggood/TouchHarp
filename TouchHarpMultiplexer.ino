@@ -314,14 +314,19 @@ public:
   LEDHarpString(int pin, unsigned long sample_period, unsigned int select_line) : 
   HarpString(pin, sample_period, select_line) {
   };
+  LEDHarpString(int pin, unsigned long sample_period, unsigned int select_line, unsigned int led_index) :
+  HarpString(pin, sample_period, select_line) {
+    _led_index = led_index;
+  };
   void set_hue(byte);
   virtual void note_on();
   virtual void note_off();
   virtual void update();
 private:
   unsigned long _note_on_time = 0UL;
-  unsigned int _fade_time = 1000;
+  unsigned int _fade_time = 2000;
   byte _hue = 200;
+  unsigned int _led_index = 0;
 };
 
 void LEDHarpString::note_on() {
@@ -343,9 +348,10 @@ void LEDHarpString::update() {
   if (_note_on_time > 0UL) {
     unsigned long elapsed = constrain(millis() - _note_on_time, 0, _fade_time);
     byte value = map(elapsed, 0, _fade_time, 255, 0);
-    leds[_select_line] = CHSV(_hue, 255, value);
+    Serial.println(_led_index);
+    leds[_led_index] = CHSV(_hue, 255, value);
   } else {
-    leds[_select_line] = CHSV(_hue, 255, 0);
+    leds[_led_index] = CHSV(_hue, 255, 0);
   }
 }
 
@@ -354,47 +360,47 @@ void LEDHarpString::update() {
 // The current prototype has NUM_STRINGS "strings", all attached to
 // analog input 9 on the Teensy
 LEDHarpString strings[39] = {
-  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 0),
-  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 1),
-  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 2),
-  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 3),
-  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 4),
-  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 5),
-  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 6),
-  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 7),
-  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 8),
-  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 9),
-  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 10),
-  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 11),
-  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 12),
+  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 0, 0),
+  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 1, 1),
+  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 2, 2),
+  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 3, 3),
+  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 4, 4),
+  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 5, 5),
+  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 6, 6),
+  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 7, 7),
+  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 8, 8),
+  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 9, 9),
+  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 10, 10),
+  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 11, 11),
+  LEDHarpString(TOUCH_IN_0, SAMPLE_PERIOD, 12, 12),
 
-  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 0),
-  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 1),
-  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 2),
-  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 3),
-  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 4),
-  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 5),
-  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 6),
-  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 7),
-  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 8),
-  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 9),
-  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 10),
-  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 11),
-  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 12),
+  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 0, 13),
+  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 1, 14),
+  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 2, 15),
+  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 3, 16),
+  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 4, 17),
+  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 5, 18),
+  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 6, 19),
+  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 7, 20),
+  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 8, 21),
+  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 9, 22),
+  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 10, 23),
+  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 11, 24),
+  LEDHarpString(TOUCH_IN_1, SAMPLE_PERIOD, 12, 25),
 
-  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 0),
-  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 1),
-  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 2),
-  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 3),
-  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 4),
-  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 5),
-  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 6),
-  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 7),
-  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 8),
-  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 9),
-  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 10),
-  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 11),
-  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 12),
+  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 0, 26),
+  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 1, 27),
+  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 2, 28),
+  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 3, 29),
+  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 4, 30),
+  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 5, 31),
+  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 6, 32),
+  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 7, 33),
+  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 8, 34),
+  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 9, 35),
+  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 10, 36),
+  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 11, 37),
+  LEDHarpString(TOUCH_IN_2, SAMPLE_PERIOD, 12, 38),
 };
 
 
