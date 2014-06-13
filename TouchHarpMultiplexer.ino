@@ -64,6 +64,8 @@
  * a few seconds can produce some interesting effects.
  * 
  */
+ 
+#include "HarpString.h"
 
 // Touch input pins. There are 3 multiplexers, so
 // there are 3 touch input pins
@@ -78,24 +80,12 @@
 // LED output pins
 #define LED0 13
 
-// Multiplexer select pins
-#define SEL0 2
-#define SEL1 3
-#define SEL2 4
-#define SEL3 5
-
 // Sensitivity adjustment input pin
 #define SENS_IN A0
 // Duration adjustment input pin
 #define DUR_IN A1
 // Sample period - sample input no more often than this (in milliseconds)
 #define SAMPLE_PERIOD 1
-// How many samples to average
-#define SAMPLE_BUFFER_SIZE 10
-// Default reading from a touch sensor to consider a touch event
-#define DEFAULT_TOUCH_THRESHOLD 5000
-// How long the simulated strings vibrate
-#define DEFAULT_STRING_VIBRATION_DURATION 2000L
 
 // Imports and definitions related to LED feedback support
 
@@ -122,184 +112,6 @@ void p(char *fmt, ... ){
   Serial.print(tmp);
 }
 
-
-class TouchPin {
-  /**
-   * This class handles input on a single Teensy touch input pin, and does
-   * de-glitching by keeping a ring buffer of input values. The value
-   * returned by the value() method is a running average of the last
-   * SAMPLE_BUFFER_SIZE samples, sampled every _sample_period milliseconds.
-   * The caller is reponsible for calling the update() method at least once
-   * every _sample_period milliseconds.
-   */
-  int _pin;  // Touch input pin on Teensy
-  unsigned long _sample_period;  // Sample input every _sample_period millisconds
-  unsigned long _last_sample_time;
-  unsigned int _samples[SAMPLE_BUFFER_SIZE];  // Ring buffer of touchRead values
-  unsigned int _index;  // Current index into ring buffer
-  unsigned long _sum;  // Current sum
-  unsigned int _touch_threshold;  // Threshold for declaring a touched event
-  
-protected:
-  int _select_line;  // If > 0, select this input pin on the multiplexer
-  // XXX(ggood) this should actually be a per-led offset
-
-public:
-  TouchPin(int, unsigned long);
-  TouchPin(int, unsigned long, unsigned int);
-  virtual void update();
-  unsigned int value();
-  boolean touching();
-  void set_touch_threshold(unsigned int touch_threshold);
-};
-
-TouchPin::TouchPin(int pin, unsigned long sample_period) {
-  _pin = pin;
-  _sample_period = sample_period;
-  _last_sample_time = 0UL;
-  _index = 0;
-  _sum = 0UL;
-  _select_line = -1;
-  _touch_threshold = DEFAULT_TOUCH_THRESHOLD;
-}
-
-
-TouchPin::TouchPin(int pin, unsigned long sample_period, unsigned int select_line) {
-  _pin = pin;
-  _sample_period = sample_period;
-  _last_sample_time = 0UL;
-  _index= 0;
-  _sum = 0UL;
-  _select_line = select_line;
-  _touch_threshold = DEFAULT_TOUCH_THRESHOLD;
-}
-
-
-void TouchPin::update() {
-  if (millis() > _last_sample_time + _sample_period) {
-    if (_select_line >= 0) {
-      // Select the appropriate input on the multiplexer
-      digitalWrite(SEL0, _select_line & 0x01);
-      digitalWrite(SEL1, (_select_line >> 1)  & 0x01);
-      digitalWrite(SEL2, (_select_line >> 2)  & 0x01);
-      digitalWrite(SEL3, (_select_line >> 3)  & 0x01);
-    }
-    // Remember the time we read this value
-    _last_sample_time = millis();
-    // Read the value
-    unsigned int val = touchRead(_pin);
-    // Update the running average
-    _sum -= _samples[_index];
-    _samples[_index] = val;
-    _sum += val;
-    _index = (_index + 1 ) % SAMPLE_BUFFER_SIZE;
-  }
-}
-
-
-unsigned int TouchPin::value() {
-  // Return the running average
-  return _sum / SAMPLE_BUFFER_SIZE;
-}
-
-
-boolean TouchPin::touching() {
-  // If the current value is above the touch threshold, return true
-  return value() > _touch_threshold;
-}
-
-
-void TouchPin::set_touch_threshold(unsigned int touch_threshold) {
-  // Set the threshold value - if the value we read is larger than
-  // touch_threshold, we report a touch event.
-  _touch_threshold = touch_threshold;
-}
-
-
-class HarpString: 
-public TouchPin {
-  /**
-   * A HarpString extends the TouchPin object and adds the concept of a "pluck"
-   * operation. A pluck happens when the string is touched and then is released.
-   */
-#define STATE_IDLE 1
-#define STATE_ARMED 2
-#define STATE_SOUNDING 3
-
-  boolean _state = STATE_IDLE;
-
-  unsigned long _on_time = 0L;
-  byte _midi_note = 0;
-  unsigned long _duration = DEFAULT_STRING_VIBRATION_DURATION;  // How long the simulated string vibrates
-
-public:
-  HarpString(int pin, unsigned long sample_period) : 
-  TouchPin(pin, sample_period) {
-  };
-  HarpString(int pin, unsigned long sample_period, unsigned int select_line) : 
-  TouchPin(pin, sample_period, select_line) {
-  };
-  void update();
-  void set_midi_note(byte note);
-  void set_duration(unsigned long duration);
-  virtual void note_on();
-  virtual void note_off();
-};
-
-
-void HarpString::update() {
-  TouchPin::update();  // Call superclass, where the pin is actually read
-  switch (_state) {
-  case STATE_IDLE:
-    if (touching()) {
-      _state = STATE_ARMED;
-    }
-    break;
-  case STATE_ARMED:
-    if (!touching()) {
-      note_on();
-      _state = STATE_SOUNDING;
-      _on_time = millis();
-    }
-    break;
-  case STATE_SOUNDING:
-    if (touching()) {
-      // Stop string "vibration"
-      note_off();
-      _state = STATE_ARMED;
-    } 
-    else if (millis() - _on_time > _duration) {
-      note_off();
-      _on_time = 0L;
-      _state = STATE_IDLE;
-    }
-    break;
-  default:
-    Serial.println("OOOOPS");
-  }
-}
-
-
-void HarpString::note_on() {
-  usbMIDI.sendNoteOn(_midi_note, 100, 1);
-}
-
-
-void HarpString::note_off() {
-  usbMIDI.sendNoteOff(_midi_note, 100, 1);
-}
-
-
-void HarpString::set_midi_note(byte midi_note) {
-  _midi_note = midi_note;
-}
-
-
-void HarpString::set_duration(unsigned long duration) {
-  // Set the duration, in milliseonds, that the
-  // simulated string will vibrate
-  _duration = duration;
-}
 
 class LEDHarpString: 
 public HarpString {
